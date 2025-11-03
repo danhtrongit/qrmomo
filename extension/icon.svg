@@ -1,0 +1,27 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a50064;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d82d8b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#bg-gradient)"/>
+  
+  <!-- MoMo simplified logo (two circles) -->
+  <circle cx="45" cy="64" r="12" fill="white" opacity="0.9"/>
+  <circle cx="83" cy="64" r="12" fill="white" opacity="0.9"/>
+  
+  <!-- Payment card icon -->
+  <rect x="32" y="44" width="64" height="40" rx="4" fill="white" opacity="0.2"/>
+  <line x1="32" y1="54" x2="96" y2="54" stroke="white" stroke-width="2" opacity="0.4"/>
+  
+  <!-- QR code dots (simplified) -->
+  <rect x="38" y="60" width="4" height="4" fill="white" opacity="0.6"/>
+  <rect x="44" y="60" width="4" height="4" fill="white" opacity="0.6"/>
+  <rect x="38" y="66" width="4" height="4" fill="white" opacity="0.6"/>
+  <rect x="44" y="66" width="4" height="4" fill="white" opacity="0.6"/>
+</svg>
+

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MoMo Payment</title>
+    <meta property="og:description" content="Nhà cung cấp: Test Shop. Mã đơn hàng: TEST123456. Số tiền: 100,000đ. Mô tả: Test payment">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .qr-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .image-qr-code {
+            max-width: 300px;
+            border: 2px solid #ddd;
+            padding: 10px;
+            background: white;
+        }
+        .merchant-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        .merchant-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .merchant-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+        .box-detail {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .box-detail h4 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .box-detail p {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+        }
+        .box-detail h3 {
+            margin: 0;
+            color: #d82d8b;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .countdown {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 8px;
+        }
+        .time-box {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            line-height: 60px;
+            background: #ff9800;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 5px;
+            border-radius: 8px;
+        }
+        .note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; color: #d82d8b;">🎫 Test Trang Thanh Toán MoMo</h1>
+        
+        <!-- QR Code Section -->
+        <div class="qr-section">
+            <img class="image-qr-code" 
+                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjIwIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj5URVNUIFFSIENPREU8L3RleHQ+PC9zdmc+"
+                 alt="paymentcode">
+            <p style="margin-top: 10px; color: #666;">Quét mã QR để thanh toán</p>
+        </div>
+
+        <!-- Merchant Info -->
+        <div class="merchant-section">
+            <img class="merchant-logo" 
+                 src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZDgyZDhiIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPvCfj6o8L3RleHQ+PC9zdmc+"
+                 alt="Logo">
+            <span class="merchant-name">Test Shop Vietnam</span>
+        </div>
+
+        <!-- Countdown Timer -->
+        <div class="countdown">
+            <p style="margin: 0 0 10px 0; color: #666;">⏱️ Đơn hàng sẽ hết hạn sau:</p>
+            <span name="expiredAt">
+                <span class="time-box">14</span>
+                <span style="font-size: 24px;">:</span>
+                <span class="time-box">35</span>
+            </span>
+        </div>
+
+        <!-- Payment Details -->
+        <div class="box-detail">
+            <h4>🏪 Nhà cung cấp</h4>
+            <p>Test Shop Vietnam</p>
+        </div>
+
+        <div class="box-detail">
+            <h4>🔖 Mã đơn hàng</h4>
+            <p>TEST123456789</p>
+        </div>
+
+        <div class="box-detail">
+            <h4>📝 Mô tả</h4>
+            <p>Thanh toán đơn hàng test - Extension MoMo Payment Extractor</p>
+        </div>
+
+        <div class="box-detail">
+            <h4>💰 Số tiền</h4>
+            <h3>100.000đ</h3>
+        </div>
+
+        <!-- Note -->
+        <div class="note">
+            <strong>📌 Hướng dẫn test:</strong><br>
+            1. Mở trang này trong Chrome<br>
+            2. Click vào Extension icon<br>
+            3. Click "Trích xuất thông tin"<br>
+            4. Kiểm tra Console logs (F12)<br>
+            5. React App sẽ tự động mở
+        </div>
+    </div>
+
+    <script>
+        // Simulate countdown
+        let minutes = 14;
+        let seconds = 35;
+        
+        setInterval(() => {
+            if (seconds > 0) {
+                seconds--;
+            } else if (minutes > 0) {
+                minutes--;
+                seconds = 59;
+            }
+            
+            const timeBoxes = document.querySelectorAll('.time-box');
+            if (timeBoxes.length >= 2) {
+                timeBoxes[0].textContent = minutes.toString().padStart(2, '0');
+                timeBoxes[1].textContent = seconds.toString().padStart(2, '0');
+            }
+        }, 1000);
+
+        console.log('Test payment page loaded');
+        console.log('Elements check:');
+        console.log('- QR Code:', !!document.querySelector('.image-qr-code'));
+        console.log('- Merchant:', !!document.querySelector('.merchant-name'));
+        console.log('- Box details:', document.querySelectorAll('.box-detail').length);
+        console.log('- Countdown:', !!document.querySelector('span[name="expiredAt"]'));
+    </script>
+</body>
+</html>
+
