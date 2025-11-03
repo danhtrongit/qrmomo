@@ -44,10 +44,92 @@ loadConfig().then((config) => {
             setTimeout(() => location.reload(), 500);
           }
         });
+      } else if (isMobileVersion) {
+        // Mobile version detected - auto-extract after a delay
+        console.log('✅ Mobile version loaded, auto-extracting in 3 seconds...');
+        setTimeout(() => {
+          autoExtractAndSend();
+        }, 3000);
       }
     }, 1000);
   });
 })();
+
+// Auto-extract and send data when page is ready
+async function autoExtractAndSend() {
+  console.log('🤖 AUTO-EXTRACT: Starting...');
+  
+  // Check if already extracted recently (avoid duplicate)
+  const lastExtractTime = localStorage.getItem('momo_last_extract_time');
+  const currentTime = Date.now();
+  if (lastExtractTime && (currentTime - parseInt(lastExtractTime)) < 10000) {
+    console.log('⏭️ AUTO-EXTRACT: Recently extracted, skipping...');
+    return;
+  }
+  
+  // Mark as extracted
+  localStorage.setItem('momo_last_extract_time', currentTime.toString());
+  
+  // Generate token
+  chrome.runtime.sendMessage({ type: 'GENERATE_TOKEN' }, async (response) => {
+    if (!response || !response.token) {
+      console.error('❌ AUTO-EXTRACT: Failed to generate token');
+      return;
+    }
+    
+    console.log('🎫 AUTO-EXTRACT: Token generated:', response.token);
+    const token = response.token;
+    const reactUrl = response.url;
+    
+    // Extract data
+    const data = extractPaymentData();
+    
+    if (!data || Object.keys(data).length === 0) {
+      console.error('❌ AUTO-EXTRACT: No payment data found');
+      return;
+    }
+    
+    console.log('✅ AUTO-EXTRACT: Data extracted successfully');
+    
+    // Send to server
+    const result = await sendDataToServer(token, data);
+    
+    if (result && result.success) {
+      console.log('✅ AUTO-EXTRACT: Data sent to server');
+      
+      // Start countdown observer
+      observeCountdown(token);
+      
+      // Auto-update every 5 seconds
+      if (window.momoUpdateInterval) {
+        clearInterval(window.momoUpdateInterval);
+      }
+      
+      window.momoUpdateInterval = setInterval(async () => {
+        const updatedData = extractPaymentData();
+        if (updatedData && Object.keys(updatedData).length > 0) {
+          await sendDataToServer(token, updatedData);
+        }
+      }, 5000);
+      
+      // Show notification
+      chrome.runtime.sendMessage({
+        type: 'SHOW_NOTIFICATION',
+        title: '✅ Tự động trích xuất thành công',
+        message: 'Dữ liệu đã được gửi đến React App'
+      });
+      
+      // Auto-open React app in new tab (if not already open)
+      chrome.runtime.sendMessage({
+        type: 'AUTO_OPEN_REACT_APP',
+        url: reactUrl
+      });
+      
+    } else {
+      console.error('❌ AUTO-EXTRACT: Failed to send data to server');
+    }
+  });
+}
 
 // Hàm trích xuất thông tin từ trang MoMo
 function extractPaymentData() {

@@ -181,6 +181,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     return true;
   }
+  
+  if (request.type === 'SHOW_NOTIFICATION') {
+    // Show notification from content script
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon48.png',
+      title: request.title,
+      message: request.message,
+      priority: 2
+    });
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  if (request.type === 'AUTO_OPEN_REACT_APP') {
+    // Auto-open React app in new tab (check if already open first)
+    chrome.tabs.query({}, (tabs) => {
+      const reactAppOpen = tabs.some(tab => 
+        tab.url && tab.url.startsWith(REACT_APP_URL)
+      );
+      
+      if (!reactAppOpen) {
+        // Open in new tab
+        chrome.tabs.create({ 
+          url: request.url, 
+          active: false // Don't auto-focus
+        });
+        sendResponse({ success: true, opened: true });
+      } else {
+        // Already open
+        sendResponse({ success: true, opened: false, alreadyOpen: true });
+      }
+    });
+    
+    return true;
+  }
 
   return true;
 });
