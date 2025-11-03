@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import './QRPage.css';
 import PaymentCard from '../components/PaymentCard';
 import CONFIG from '../config';
+import { createDeviceInfoForExtension, onDeviceChange } from '../utils/deviceDetector';
 
 const WS_URL = CONFIG.WS_URL;
 
@@ -11,8 +12,29 @@ function QRPage() {
   const [paymentData, setPaymentData] = useState(null);
   const [wsStatus, setWsStatus] = useState('connecting'); // connecting, connected, disconnected, error
   const [sessionInfo, setSessionInfo] = useState(null);
+  const [deviceInfo, setDeviceInfo] = useState(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+
+  // Detect device và lưu vào localStorage cho extension
+  useEffect(() => {
+    const updateDeviceInfo = () => {
+      const info = createDeviceInfoForExtension();
+      setDeviceInfo(info);
+      
+      // Lưu vào localStorage để extension có thể đọc
+      localStorage.setItem('momo_device_info', JSON.stringify(info));
+      console.log('📱 Device info updated:', info);
+    };
+
+    // Update immediately
+    updateDeviceInfo();
+
+    // Listen for resize
+    const cleanup = onDeviceChange(updateDeviceInfo);
+
+    return cleanup;
+  }, []);
 
   useEffect(() => {
     connectWebSocket();

@@ -10,6 +10,79 @@ loadConfig().then((config) => {
   console.log('Content: Config loaded', config);
 });
 
+// Initialize device emulation ASAP
+// This must run before page renders to get mobile version
+(function initDeviceEmulation() {
+  console.log('🎭 Device Emulation: Initializing...');
+  
+  // Try to get device info from React app
+  function getDeviceInfo() {
+    try {
+      // Check if we're on React app page (has the device info)
+      const stored = localStorage.getItem('momo_device_info');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Could not read device info:', error);
+    }
+    
+    // Default to Android mobile
+    return {
+      recommended: {
+        userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        viewport: { width: 360, height: 800, isMobile: true },
+        platform: 'android'
+      }
+    };
+  }
+  
+  const deviceInfo = getDeviceInfo();
+  console.log('📱 Device info:', deviceInfo);
+  
+  // Inject mobile viewport meta tag
+  const injectViewport = () => {
+    const viewport = deviceInfo.recommended.viewport;
+    const existing = document.querySelector('meta[name="viewport"]');
+    if (existing) existing.remove();
+    
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = `width=${viewport.width}, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui`;
+    document.head.appendChild(meta);
+    console.log('✅ Mobile viewport injected');
+  };
+  
+  // Inject as early as possible
+  if (document.head) {
+    injectViewport();
+  } else {
+    const observer = new MutationObserver(() => {
+      if (document.head) {
+        injectViewport();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+  
+  // Detect page version after load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const mobileButton = document.getElementById('openMoMoApp');
+      const qrMobileUI = document.getElementById('qr-mobile-ui');
+      const isMobileVersion = !!(mobileButton || (qrMobileUI && qrMobileUI.style.display !== 'none'));
+      
+      console.log('🔍 Page version:', isMobileVersion ? 'Mobile ✅' : 'Desktop ❌');
+      
+      if (!isMobileVersion) {
+        console.warn('⚠️ Desktop version detected!');
+        console.info('💡 Enable Chrome DevTools Device Mode (F12 → Toggle Device Toolbar) and reload');
+      }
+    }, 1000);
+  });
+})();
+
 // Hàm trích xuất thông tin từ trang MoMo
 function extractPaymentData() {
   try {
