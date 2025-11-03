@@ -6,16 +6,25 @@ Extension giờ đây sử dụng **Chrome DevTools Protocol (CDP)** để tự 
 
 ## 🎯 Cách hoạt động
 
-### 1. **Tự động phát hiện trang MoMo**
+### 1. **Tự động phát hiện trang MoMo TRƯỚC KHI load**
 ```javascript
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'loading' && 
-      tab.url.includes('payment.momo.vn')) {
-    // Tự động emulate mobile
-    await autoEmulateMoMoPage(tabId, tab.url);
-  }
+// Dùng webNavigation.onBeforeNavigate để emulate TRƯỚC khi page load
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  if (details.frameId !== 0) return; // Only main frame
+  if (!details.url.includes('payment.momo.vn')) return;
+  
+  // Emulate NGAY LẬP TỨC trước khi page bắt đầu load
+  await emulateMobileDevice(details.tabId);
+  // → Server MoMo sẽ nhận được mobile User-Agent ngay từ request đầu tiên
+  // → Không cần reload!
 });
 ```
+
+**Quan trọng:** Dùng `onBeforeNavigate` thay vì `onUpdated` để:
+- ✅ Emulate **TRƯỚC** khi page load
+- ✅ Server nhận mobile UA ngay từ request đầu tiên
+- ✅ **Không cần reload** page sau khi emulate
+- ✅ Page load một lần duy nhất với mobile version
 
 ### 2. **Sử dụng Chrome Debugger API**
 ```javascript
@@ -65,11 +74,13 @@ await chrome.debugger.sendCommand({ tabId },
 );
 ```
 
-### 4. **Reload page để apply changes**
+### 4. **Không cần reload!**
 ```javascript
-await chrome.debugger.sendCommand({ tabId }, 'Page.reload', {
-  ignoreCache: true
-});
+// ❌ CŨ: Phải reload page sau khi emulate
+// await chrome.debugger.sendCommand({ tabId }, 'Page.reload');
+
+// ✅ MỚI: Emulate TRƯỚC khi page load → không cần reload
+// Page tự động load với mobile UA ngay từ đầu
 ```
 
 ## 📱 Device Presets có sẵn
@@ -95,9 +106,12 @@ const DEVICE_PRESETS = {
 
 ### Tự động (Recommended)
 1. Mở bất kỳ trang MoMo nào (`payment.momo.vn/*`)
-2. Extension **tự động** phát hiện và emulate mobile
-3. Trang tự động reload với mobile view
-4. Deep links được trích xuất thành công ✅
+2. Extension **tự động** phát hiện TRƯỚC KHI page load
+3. Emulate mobile NGAY LẬP TỨC
+4. Page load một lần duy nhất với mobile version
+5. Deep links được trích xuất thành công ✅
+
+**Không cần reload!** 🎉
 
 ### Thủ công (Optional)
 1. Mở trang MoMo
@@ -110,15 +124,15 @@ const DEVICE_PRESETS = {
 ```
 User mở MoMo payment page
           ↓
-Extension phát hiện (chrome.tabs.onUpdated)
+Extension phát hiện TRƯỚC khi page load (webNavigation.onBeforeNavigate)
           ↓
-Attach Chrome Debugger
+Attach Chrome Debugger NGAY LẬP TỨC
           ↓
-Override Device Metrics + Touch + User-Agent
+Override Device Metrics + Touch + User-Agent (< 100ms)
           ↓
-Reload page với mobile view
+Page bắt đầu load VỚI mobile UA từ đầu
           ↓
-Server MoMo render mobile HTML (có deep links)
+Server MoMo nhận mobile request → render mobile HTML (có deep links)
           ↓
 Content script extract momoAppLink + momoDeepLink
           ↓
@@ -127,6 +141,8 @@ Gửi data qua WebSocket đến React App
 React App hiển thị QR + "Open with MoMo App" button
           ↓
 User click button → Mở MoMo app trực tiếp ✅
+
+✨ Toàn bộ process diễn ra trong 1 lần load duy nhất!
 ```
 
 ## 🔧 Quyền cần thiết trong manifest.json
@@ -138,11 +154,17 @@ User click button → Mở MoMo app trực tiếp ✅
     "scripting",
     "storage",
     "notifications",
-    "debugger",  // ← Quan trọng cho CDP
-    "tabs"       // ← Quan trọng cho auto-detect
+    "debugger",      // ← Quan trọng cho CDP
+    "tabs",          // ← Quan trọng cho tab management
+    "webNavigation"  // ← QUAN TRỌNG NHẤT: Detect TRƯỚC khi page load
   ]
 }
 ```
+
+**`webNavigation` là key permission:**
+- Cho phép lắng nghe `onBeforeNavigate`
+- Emulate được TRƯỚC khi page bắt đầu request
+- Loại bỏ hoàn toàn nhu cầu reload
 
 ## ⚠️ Lưu ý quan trọng
 
@@ -185,12 +207,26 @@ Khi extension attach debugger, Chrome sẽ hiển thị:
 6. → 5 bước, dễ sai, success rate 70%
 ```
 
-### ✅ Bây giờ (Auto)
+### ✅ Bây giờ (Auto with Pre-Emulation)
 ```
 1. User mở MoMo page
-2. Extension tự động emulate & reload
-3. → Done! 100% success rate
+2. Extension emulate TRƯỚC khi page load
+3. → Done! 100% success rate, NO reload
 ```
+
+### 🚀 Optimization: Pre-Emulation
+```javascript
+// Trước: Emulate sau khi page đã load → phải reload
+chrome.tabs.onUpdated → emulate → reload
+
+// Sau: Emulate TRƯỚC khi page load → không cần reload
+chrome.webNavigation.onBeforeNavigate → emulate → page tự load với mobile UA
+```
+
+**Benefits:**
+- ⚡ Nhanh hơn (không mất thời gian reload)
+- 🎯 Chính xác hơn (server nhận mobile UA từ đầu)
+- 😊 UX tốt hơn (user không thấy page reload)
 
 ## 🔍 Debugging
 

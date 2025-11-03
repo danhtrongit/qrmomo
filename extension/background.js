@@ -165,22 +165,87 @@ async function generateToken() {
   }
 }
 
-// Auto-emulate mobile when opening MoMo payment pages
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only trigger when page starts loading
-  if (changeInfo.status === 'loading' && tab.url && tab.url.includes('payment.momo.vn')) {
-    console.log('📱 MoMo payment page detected, auto-emulating mobile...');
-    
-    // Wait a bit for page to start loading
-    setTimeout(async () => {
-      const result = await autoEmulateMoMoPage(tabId, tab.url);
-      if (result.success) {
-        console.log('✅ Auto-emulation successful');
-      } else {
-        console.warn('⚠️ Auto-emulation failed:', result.error || result.message);
-      }
-    }, 500);
+// Track which tabs we've already emulated to avoid double-emulation
+const emulatedTabs = new Set();
+
+// Auto-emulate mobile BEFORE MoMo payment pages load
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  // Only main frame (not iframes)
+  if (details.frameId !== 0) return;
+  
+  // Only MoMo payment pages
+  if (!details.url || !details.url.includes('payment.momo.vn')) return;
+  
+  const tabId = details.tabId;
+  
+  // Skip if already emulated
+  if (emulatedTabs.has(tabId)) {
+    console.log('⏭️ Tab already emulated, skipping:', tabId);
+    return;
   }
+  
+  console.log('🎯 MoMo payment page BEFORE navigate, emulating NOW:', tabId);
+  
+  try {
+    // Emulate immediately BEFORE page loads
+    const device = DEVICE_PRESETS['Samsung Galaxy S23'];
+    
+    // Attach debugger
+    await chrome.debugger.attach({ tabId }, '1.3');
+    
+    // Enable domains
+    await chrome.debugger.sendCommand({ tabId }, 'Emulation.enable');
+    await chrome.debugger.sendCommand({ tabId }, 'Network.enable');
+    
+    // Set device metrics
+    await chrome.debugger.sendCommand({ tabId }, 'Emulation.setDeviceMetricsOverride', {
+      width: device.viewport.width,
+      height: device.viewport.height,
+      deviceScaleFactor: device.viewport.deviceScaleFactor,
+      mobile: device.viewport.mobile,
+      screenOrientation: { type: 'portraitPrimary', angle: 0 }
+    });
+    
+    // Enable touch
+    await chrome.debugger.sendCommand({ tabId }, 'Emulation.setTouchEmulationEnabled', {
+      enabled: true,
+      maxTouchPoints: 5
+    });
+    
+    // Override User-Agent
+    await chrome.debugger.sendCommand({ tabId }, 'Network.setUserAgentOverride', {
+      userAgent: device.userAgent,
+      platform: device.platform
+    });
+    
+    // Mark as emulated
+    emulatedTabs.add(tabId);
+    
+    console.log('✅ Pre-emulation successful! Page will load with mobile UA');
+    
+    // Show success notification after page loads
+    setTimeout(() => {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon48.png',
+        title: '✅ Mobile Emulation Active',
+        message: `Đang giả lập Samsung Galaxy S23`,
+        priority: 1
+      });
+    }, 2000);
+    
+  } catch (error) {
+    console.error('❌ Pre-emulation failed:', error);
+    emulatedTabs.delete(tabId); // Remove from set so we can retry
+  }
+}, {
+  url: [{ hostContains: 'payment.momo.vn' }]
+});
+
+// Cleanup emulated tabs when closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  emulatedTabs.delete(tabId);
+  console.log('🗑️ Removed tab from emulation tracking:', tabId);
 });
 
 // Lắng nghe khi extension icon được click
