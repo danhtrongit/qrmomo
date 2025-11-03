@@ -8,16 +8,27 @@
     "scripting",
     "storage",
     "notifications",
-    "debugger",
     "tabs",
-    "webNavigation"
+    "webNavigation",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://payment.momo.vn/*",
+    "https://applinks.momo.vn/*",
     "http://localhost:4104/*",
     "http://localhost:4105/*",
     "file:///*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "momo_mobile_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
   "content_scripts": [
     {
       "matches": [

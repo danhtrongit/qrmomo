@@ -74,16 +74,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      emulateMobileBtn.textContent = '⏳ Đang emulate...';
+      emulateMobileBtn.textContent = '⏳ Đang reload...';
       emulateMobileBtn.disabled = true;
 
-      // Gửi message đến background để emulate
+      // Gửi message đến background để reload tab
       chrome.runtime.sendMessage({ 
         type: 'EMULATE_MOBILE',
         tabId: currentTab.id,
         url: currentTab.url
       }, (response) => {
-        emulateMobileBtn.textContent = '📱 Emulate Mobile (Auto)';
+        emulateMobileBtn.textContent = '🔄 Reload với Mobile UA';
         emulateMobileBtn.disabled = false;
 
         if (chrome.runtime.lastError) {
@@ -92,14 +92,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (response && response.success) {
-          showMessage('✅ Emulation thành công! Trang đang reload...', 3000);
+          showMessage('✅ Đang reload với Mobile User-Agent...', 2000);
         } else {
-          showMessage('⚠️ ' + (response?.error || response?.message || 'Không thể emulate'));
+          showMessage('⚠️ ' + (response?.error || response?.message || 'Không thể reload'));
         }
       });
     } catch (error) {
       showMessage('❌ Có lỗi xảy ra: ' + error.message);
-      emulateMobileBtn.textContent = '📱 Emulate Mobile (Auto)';
+      emulateMobileBtn.textContent = '🔄 Reload với Mobile UA';
       emulateMobileBtn.disabled = false;
     }
   });

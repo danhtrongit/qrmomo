@@ -1,6 +1,6 @@
 // Background Service Worker
-// Import configuration and device emulator
-importScripts('config.js', 'deviceEmulator.js');
+// Import configuration
+importScripts('config.js');
 
 // Load config on startup
 let SERVER_URL = CONFIG.SERVER_URL;
@@ -10,6 +10,12 @@ let REACT_APP_URL = CONFIG.REACT_APP_URL;
 loadConfig().then((config) => {
   SERVER_URL = config.SERVER_URL;
   REACT_APP_URL = config.REACT_APP_URL;
+});
+
+// Enable mobile User-Agent rules for MoMo pages on installation
+chrome.runtime.onInstalled.addListener(async () => {
+  // Rules are automatically enabled from rules.json
+  // No need to manually enable declarativeNetRequest rules
 });
 
 // Lắng nghe messages từ content script
@@ -45,23 +51,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.type === 'EMULATE_MOBILE') {
-    // Tự động emulate mobile device bằng CDP
-    autoEmulateMoMoPage(sender.tab.id, sender.tab.url)
-      .then(result => {
-        sendResponse(result);
-      })
-      .catch(error => {
-        sendResponse({ error: error.message });
-      });
-    
-    return true;
-  }
-  
-  if (request.type === 'STOP_EMULATION') {
-    // Stop emulation
-    stopEmulation(sender.tab.id)
-      .then(result => {
-        sendResponse(result);
+    // Mobile UA is now handled by declarativeNetRequest rules
+    // Just reload the tab to apply the rules
+    chrome.tabs.reload(sender.tab.id)
+      .then(() => {
+        sendResponse({ 
+          success: true, 
+          message: 'Tab reloaded with mobile User-Agent rules' 
+        });
       })
       .catch(error => {
         sendResponse({ error: error.message });
@@ -149,80 +146,27 @@ async function generateToken() {
   }
 }
 
-// Track which tabs we've already emulated to avoid double-emulation
-const emulatedTabs = new Set();
+// Mobile User-Agent is now automatically applied via declarativeNetRequest rules
+// No need for manual CDP emulation or tab tracking
 
-// Auto-emulate mobile BEFORE MoMo payment pages load
-chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-  // Only main frame (not iframes)
+// Show notification when MoMo page loads (for user feedback)
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+  // Only main frame
   if (details.frameId !== 0) return;
   
   // Only MoMo payment pages
   if (!details.url || !details.url.includes('payment.momo.vn')) return;
   
-  const tabId = details.tabId;
-  
-  // Skip if already emulated
-  if (emulatedTabs.has(tabId)) {
-    return;
-  }
-  
-  try {
-    // Emulate immediately BEFORE page loads
-    const device = DEVICE_PRESETS['Samsung Galaxy S23'];
-    
-    // Attach debugger
-    await chrome.debugger.attach({ tabId }, '1.3');
-    
-    // Enable domains
-    await chrome.debugger.sendCommand({ tabId }, 'Emulation.enable');
-    await chrome.debugger.sendCommand({ tabId }, 'Network.enable');
-    
-    // Set device metrics
-    await chrome.debugger.sendCommand({ tabId }, 'Emulation.setDeviceMetricsOverride', {
-      width: device.viewport.width,
-      height: device.viewport.height,
-      deviceScaleFactor: device.viewport.deviceScaleFactor,
-      mobile: device.viewport.mobile,
-      screenOrientation: { type: 'portraitPrimary', angle: 0 }
-    });
-    
-    // Enable touch
-    await chrome.debugger.sendCommand({ tabId }, 'Emulation.setTouchEmulationEnabled', {
-      enabled: true,
-      maxTouchPoints: 5
-    });
-    
-    // Override User-Agent
-    await chrome.debugger.sendCommand({ tabId }, 'Network.setUserAgentOverride', {
-      userAgent: device.userAgent,
-      platform: device.platform
-    });
-    
-    // Mark as emulated
-    emulatedTabs.add(tabId);
-    
-    // Show success notification after page loads
-    setTimeout(() => {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icon48.png',
-        title: '✅ Mobile Emulation Active',
-        message: `Đang giả lập Samsung Galaxy S23`,
-        priority: 1
-      });
-    }, 2000);
-    
-  } catch (error) {
-    emulatedTabs.delete(tabId); // Remove from set so we can retry
-  }
+  // Show success notification
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icon48.png',
+    title: '✅ Mobile View Active',
+    message: 'Trang MoMo đang hiển thị với Mobile User-Agent',
+    priority: 1
+  });
 }, {
   url: [{ hostContains: 'payment.momo.vn' }]
-});
-
-// Cleanup emulated tabs when closed
-chrome.tabs.onRemoved.addListener((tabId) => {
-  emulatedTabs.delete(tabId);
 });
 
 // Lắng nghe khi extension icon được click
