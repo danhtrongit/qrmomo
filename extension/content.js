@@ -77,10 +77,150 @@ loadConfig().then((config) => {
       
       if (!isMobileVersion) {
         console.warn('⚠️ Desktop version detected!');
-        console.info('💡 Enable Chrome DevTools Device Mode (F12 → Toggle Device Toolbar) and reload');
+        
+        // Check if user already tried once (prevent infinite loop)
+        const reloadAttempted = sessionStorage.getItem('momo_reload_attempted');
+        
+        if (!reloadAttempted) {
+          console.info('🔄 Attempting auto-reload to request mobile version...');
+          console.info('💡 Please enable Chrome DevTools Device Mode (Ctrl+Shift+M) before this page loads');
+          
+          // Mark that we tried to reload
+          sessionStorage.setItem('momo_reload_attempted', 'true');
+          
+          // Show notification banner
+          showReloadNotification();
+        } else {
+          console.warn('⚠️ Auto-reload already attempted but still got desktop version');
+          console.info('💡 IMPORTANT: You MUST enable Chrome DevTools Device Mode (F12 → Ctrl+Shift+M)');
+          console.info('💡 Steps:');
+          console.info('   1. Press Ctrl+Shift+M (Cmd+Shift+M on Mac)');
+          console.info('   2. Select: iPhone 14 Pro or Galaxy S23');
+          console.info('   3. Reload this page (Ctrl+R)');
+          
+          // Show instruction banner
+          showInstructionBanner();
+        }
+      } else {
+        // Clear reload attempt flag on success
+        sessionStorage.removeItem('momo_reload_attempted');
+        console.log('✅ Mobile version loaded successfully!');
       }
     }, 1000);
   });
+  
+  // Show notification banner asking user to enable device mode
+  function showReloadNotification() {
+    const banner = document.createElement('div');
+    banner.id = 'momo-reload-notification';
+    banner.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: slideDown 0.5s ease-out;
+    `;
+    
+    banner.innerHTML = `
+      <style>
+        @keyframes slideDown {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(0); }
+        }
+        #momo-reload-notification button {
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 12px 30px;
+          border-radius: 25px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          margin: 10px 5px 0;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #momo-reload-notification button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        #momo-reload-notification .close-btn {
+          background: rgba(255,255,255,0.2);
+          color: white;
+          padding: 8px 20px;
+          font-size: 14px;
+        }
+      </style>
+      <div style="max-width: 800px; margin: 0 auto;">
+        <h2 style="margin: 0 0 10px 0; font-size: 24px;">📱 Cần Device Mode để lấy Deep Links</h2>
+        <p style="margin: 0 0 15px 0; font-size: 16px; opacity: 0.95;">
+          MoMo chỉ hiển thị nút "Thanh toán bằng Ví MoMo" và deep links khi truy cập từ mobile device.
+        </p>
+        <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+          <p style="margin: 0 0 10px 0; font-weight: 600;">Hướng dẫn nhanh:</p>
+          <ol style="text-align: left; display: inline-block; margin: 0; padding-left: 20px;">
+            <li>Nhấn <kbd style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+Shift+M</kbd> (hoặc <kbd style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Cmd+Shift+M</kbd> trên Mac)</li>
+            <li>Chọn thiết bị: <strong>iPhone 14 Pro</strong> hoặc <strong>Galaxy S23</strong></li>
+            <li>Click nút bên dưới để reload page</li>
+          </ol>
+        </div>
+        <button onclick="window.location.reload()">
+          🔄 Reload Page với Device Mode
+        </button>
+        <button class="close-btn" onclick="this.parentElement.parentElement.remove()">
+          Đóng
+        </button>
+      </div>
+    `;
+    
+    document.body.prepend(banner);
+  }
+  
+  // Show instruction banner if reload didn't help
+  function showInstructionBanner() {
+    if (document.getElementById('momo-instruction-banner')) return;
+    
+    const banner = document.createElement('div');
+    banner.id = 'momo-instruction-banner';
+    banner.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #ff6b6b;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      z-index: 999999;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    banner.innerHTML = `
+      <strong>⚠️ Vẫn ở Desktop Version!</strong><br>
+      Bạn PHẢI enable Chrome DevTools Device Mode <strong>TRƯỚC KHI</strong> page load.<br>
+      <small>Nhấn <kbd style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">Ctrl+Shift+M</kbd> → Chọn mobile device → Reload page</small>
+      <button onclick="this.parentElement.remove()" style="margin-left: 15px; background: rgba(255,255,255,0.3); border: none; color: white; padding: 5px 15px; border-radius: 4px; cursor: pointer;">Đóng</button>
+    `;
+    
+    document.body.prepend(banner);
+    
+    // Auto-hide after 15 seconds
+    setTimeout(() => {
+      if (banner.parentElement) {
+        banner.style.transition = 'opacity 0.5s';
+        banner.style.opacity = '0';
+        setTimeout(() => banner.remove(), 500);
+      }
+    }, 15000);
+  }
 })();
 
 // Hàm trích xuất thông tin từ trang MoMo
