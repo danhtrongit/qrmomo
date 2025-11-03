@@ -31,21 +31,57 @@ function extractPaymentData() {
     // Trích xuất MoMo App Links từ script trong page
     try {
       const pageContent = document.documentElement.innerHTML;
+      console.log('Searching for MoMo links in HTML...');
       
-      // Tìm URL applinks.momo.vn (cho cả mobile và desktop)
-      const appLinksMatch = pageContent.match(/https:\\\/\\\/applinks\.momo\.vn\\\/payment\\\/v2\?[^"]+/);
+      // Tìm URL applinks.momo.vn với nhiều pattern khác nhau
+      let appLinksMatch = 
+        // Pattern 1: Escaped slashes trong JavaScript string
+        pageContent.match(/https:\\\/\\\/applinks\.momo\.vn\\\/payment\\\/v2\?[^"\\]+/) ||
+        // Pattern 2: Normal URL trong HTML
+        pageContent.match(/https:\/\/applinks\.momo\.vn\/payment\/v2\?[^"\s<>]+/) ||
+        // Pattern 3: URL-encoded
+        pageContent.match(/https%3A%2F%2Fapplinks\.momo\.vn%2Fpayment%2Fv2\?[^"\s<>&]+/);
+      
       if (appLinksMatch) {
-        // Decode escaped characters
-        data.momoAppLink = appLinksMatch[0].replace(/\\\//g, '/');
-        console.log('MoMo App Link found:', data.momoAppLink);
+        // Decode escaped characters và URL encoding
+        let link = appLinksMatch[0]
+          .replace(/\\\//g, '/')  // Unescape slashes
+          .replace(/\\u0026/g, '&')  // Decode unicode ampersand
+          .replace(/%3A/g, ':')  // Decode URL encoding
+          .replace(/%2F/g, '/')
+          .replace(/%3F/g, '?')
+          .replace(/%3D/g, '=')
+          .replace(/%26/g, '&');
+        data.momoAppLink = link;
+        console.log('✅ MoMo App Link found:', data.momoAppLink);
+      } else {
+        console.log('❌ MoMo App Link NOT found');
       }
       
-      // Tìm deep link scheme momo://
-      const deepLinkMatch = pageContent.match(/momo:\\\/\\\/app\?[^"]+/);
+      // Tìm deep link scheme momo:// với nhiều pattern
+      let deepLinkMatch = 
+        // Pattern 1: Escaped trong JavaScript
+        pageContent.match(/momo:\\\/\\\/app\?[^"\\]+/) ||
+        // Pattern 2: Normal trong HTML
+        pageContent.match(/momo:\/\/app\?[^"\s<>]+/);
+      
       if (deepLinkMatch) {
-        data.momoDeepLink = deepLinkMatch[0].replace(/\\\//g, '/');
-        console.log('MoMo Deep Link found:', data.momoDeepLink);
+        let link = deepLinkMatch[0]
+          .replace(/\\\//g, '/')
+          .replace(/\\u0026/g, '&');
+        data.momoDeepLink = link;
+        console.log('✅ MoMo Deep Link found:', data.momoDeepLink);
+      } else {
+        console.log('❌ MoMo Deep Link NOT found');
       }
+      
+      // Debug: Log một đoạn HTML chứa "applinks" nếu tìm thấy
+      if (pageContent.includes('applinks.momo.vn')) {
+        const sampleIndex = pageContent.indexOf('applinks.momo.vn');
+        const sample = pageContent.substring(Math.max(0, sampleIndex - 50), sampleIndex + 200);
+        console.log('📄 Sample HTML containing applinks:', sample);
+      }
+      
     } catch (error) {
       console.error('Error extracting MoMo links:', error);
     }
