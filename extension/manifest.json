@@ -21,13 +21,7 @@
     "file:///*"
   ],
   "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "momo_mobile_rules",
-        "enabled": true,
-        "path": "rules.json"
-      }
-    ]
+    "rule_resources": []
   },
   "content_scripts": [
     {

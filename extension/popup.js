@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Emulate Mobile Device
+  // Toggle Mobile UA
   emulateMobileBtn.addEventListener('click', async () => {
     try {
       const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -74,35 +74,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      emulateMobileBtn.textContent = '⏳ Đang reload...';
-      emulateMobileBtn.disabled = true;
+      // Check current status
+      chrome.runtime.sendMessage({ type: 'CHECK_MOBILE_UA' }, async (statusResponse) => {
+        const isEnabled = statusResponse?.enabled;
+        
+        emulateMobileBtn.textContent = '⏳ Đang xử lý...';
+        emulateMobileBtn.disabled = true;
 
-      // Gửi message đến background để reload tab
-      chrome.runtime.sendMessage({ 
-        type: 'EMULATE_MOBILE',
-        tabId: currentTab.id,
-        url: currentTab.url
-      }, (response) => {
-        emulateMobileBtn.textContent = '🔄 Reload với Mobile UA';
-        emulateMobileBtn.disabled = false;
+        // Toggle: if enabled → disable, if disabled → enable
+        const messageType = isEnabled ? 'DISABLE_MOBILE_UA' : 'ENABLE_MOBILE_UA';
+        
+        chrome.runtime.sendMessage({ type: messageType }, async (response) => {
+          if (chrome.runtime.lastError) {
+            showMessage('❌ Lỗi: ' + chrome.runtime.lastError.message);
+            emulateMobileBtn.textContent = isEnabled ? '📱 Bật Mobile UA' : '🖥️ Tắt Mobile UA';
+            emulateMobileBtn.disabled = false;
+            return;
+          }
 
-        if (chrome.runtime.lastError) {
-          showMessage('❌ Lỗi: ' + chrome.runtime.lastError.message);
-          return;
-        }
-
-        if (response && response.success) {
-          showMessage('✅ Đang reload với Mobile User-Agent...', 2000);
-        } else {
-          showMessage('⚠️ ' + (response?.error || response?.message || 'Không thể reload'));
-        }
+          if (response && response.success) {
+            // Update button text
+            emulateMobileBtn.textContent = isEnabled ? '📱 Bật Mobile UA' : '🖥️ Tắt Mobile UA';
+            emulateMobileBtn.disabled = false;
+            
+            showMessage(isEnabled ? '✅ Đã tắt Mobile UA' : '✅ Đã bật Mobile UA', 2000);
+            
+            // Reload tab to apply changes
+            await chrome.tabs.reload(currentTab.id);
+          } else {
+            showMessage('⚠️ ' + (response?.error || response?.message || 'Không thể toggle'));
+            emulateMobileBtn.textContent = isEnabled ? '🖥️ Tắt Mobile UA' : '📱 Bật Mobile UA';
+            emulateMobileBtn.disabled = false;
+          }
+        });
       });
     } catch (error) {
       showMessage('❌ Có lỗi xảy ra: ' + error.message);
-      emulateMobileBtn.textContent = '🔄 Reload với Mobile UA';
       emulateMobileBtn.disabled = false;
     }
   });
+  
+  // Update button text based on current status
+  async function updateMobileUAButton() {
+    chrome.runtime.sendMessage({ type: 'CHECK_MOBILE_UA' }, (response) => {
+      if (response && response.enabled) {
+        emulateMobileBtn.textContent = '🖥️ Tắt Mobile UA';
+      } else {
+        emulateMobileBtn.textContent = '📱 Bật Mobile UA';
+      }
+    });
+  }
 
   // Trích xuất thông tin
   extractBtn.addEventListener('click', async () => {
@@ -225,8 +246,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Kiểm tra trạng thái khi mở popup
   await checkStatus();
+  await updateMobileUAButton();
 
   // Refresh trạng thái mỗi 2 giây
-  setInterval(checkStatus, 2000);
+  setInterval(() => {
+    checkStatus();
+    updateMobileUAButton();
+  }, 2000);
 });
 

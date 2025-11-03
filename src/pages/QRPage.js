@@ -24,7 +24,33 @@ function QRPage() {
       
       // Lưu vào localStorage để extension có thể đọc
       localStorage.setItem('momo_device_info', JSON.stringify(info));
-      console.log('📱 Device info updated:', info);
+      
+      // Determine if mobile device
+      const isMobile = info.current.deviceType === 'mobile' || 
+                      info.current.deviceType === 'ios' || 
+                      info.current.deviceType === 'android';
+      
+      // Try to notify extension about device type (if extension is installed)
+      if (window.chrome && window.chrome.runtime && window.chrome.runtime.sendMessage) {
+        try {
+          chrome.runtime.sendMessage(
+            {
+              type: 'DEVICE_INFO_UPDATE',
+              data: {
+                deviceType: info.current.deviceType,
+                isMobile: isMobile,
+                viewport: info.current.viewport
+              }
+            },
+            (response) => {
+              // Ignore errors if extension not installed
+              if (chrome.runtime.lastError) return;
+            }
+          );
+        } catch (error) {
+          // Extension not available - ignore
+        }
+      }
     };
 
     // Update immediately

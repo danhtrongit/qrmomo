@@ -12,10 +12,84 @@ loadConfig().then((config) => {
   REACT_APP_URL = config.REACT_APP_URL;
 });
 
-// Enable mobile User-Agent rules for MoMo pages on installation
+// Dynamic rules management
+let mobileRulesEnabled = false;
+
+// Enable mobile UA rules dynamically
+async function enableMobileRules() {
+  try {
+    // Remove all existing dynamic rules first
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const ruleIds = existingRules.map(rule => rule.id);
+    
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: ruleIds,
+      addRules: [
+        {
+          "id": 1,
+          "priority": 1,
+          "action": {
+            "type": "modifyHeaders",
+            "requestHeaders": [
+              {
+                "header": "User-Agent",
+                "operation": "set",
+                "value": "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+              },
+              {
+                "header": "Sec-CH-UA-Mobile",
+                "operation": "set",
+                "value": "?1"
+              },
+              {
+                "header": "Sec-CH-UA-Platform",
+                "operation": "set",
+                "value": "\"Android\""
+              }
+            ]
+          },
+          "condition": {
+            "urlFilter": "*://payment.momo.vn/*",
+            "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest"]
+          }
+        }
+      ]
+    });
+    
+    mobileRulesEnabled = true;
+    return { success: true, message: 'Mobile UA rules enabled' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Disable mobile UA rules
+async function disableMobileRules() {
+  try {
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const ruleIds = existingRules.map(rule => rule.id);
+    
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: ruleIds
+    });
+    
+    mobileRulesEnabled = false;
+    return { success: true, message: 'Mobile UA rules disabled' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Check if mobile rules are enabled
+async function checkMobileRules() {
+  const rules = await chrome.declarativeNetRequest.getDynamicRules();
+  mobileRulesEnabled = rules.length > 0;
+  return { enabled: mobileRulesEnabled, rulesCount: rules.length };
+}
+
+// Initialize on startup - default: NO mobile rules
 chrome.runtime.onInstalled.addListener(async () => {
-  // Rules are automatically enabled from rules.json
-  // No need to manually enable declarativeNetRequest rules
+  await disableMobileRules();
 });
 
 // Lắng nghe messages từ content script
@@ -50,19 +124,60 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
-  if (request.type === 'EMULATE_MOBILE') {
-    // Mobile UA is now handled by declarativeNetRequest rules
-    // Just reload the tab to apply the rules
-    chrome.tabs.reload(sender.tab.id)
-      .then(() => {
-        sendResponse({ 
-          success: true, 
-          message: 'Tab reloaded with mobile User-Agent rules' 
-        });
+  if (request.type === 'ENABLE_MOBILE_UA') {
+    // Enable mobile UA rules dynamically
+    enableMobileRules()
+      .then(result => {
+        sendResponse(result);
       })
       .catch(error => {
-        sendResponse({ error: error.message });
+        sendResponse({ success: false, error: error.message });
       });
+    
+    return true;
+  }
+  
+  if (request.type === 'DISABLE_MOBILE_UA') {
+    // Disable mobile UA rules
+    disableMobileRules()
+      .then(result => {
+        sendResponse(result);
+      })
+      .catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+    
+    return true;
+  }
+  
+  if (request.type === 'CHECK_MOBILE_UA') {
+    // Check if mobile UA rules are enabled
+    checkMobileRules()
+      .then(result => {
+        sendResponse(result);
+      })
+      .catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+    
+    return true;
+  }
+  
+  if (request.type === 'DEVICE_INFO_UPDATE') {
+    // Receive device info from React app
+    const { deviceType, isMobile } = request.data;
+    
+    if (isMobile) {
+      // User is on mobile → enable mobile UA rules
+      enableMobileRules().then(() => {
+        sendResponse({ success: true, message: 'Mobile UA enabled for mobile device' });
+      });
+    } else {
+      // User is on desktop → disable mobile UA rules
+      disableMobileRules().then(() => {
+        sendResponse({ success: true, message: 'Mobile UA disabled for desktop device' });
+      });
+    }
     
     return true;
   }
@@ -146,10 +261,7 @@ async function generateToken() {
   }
 }
 
-// Mobile User-Agent is now automatically applied via declarativeNetRequest rules
-// No need for manual CDP emulation or tab tracking
-
-// Show notification when MoMo page loads (for user feedback)
+// Show notification when MoMo page loads
 chrome.webNavigation.onCompleted.addListener(async (details) => {
   // Only main frame
   if (details.frameId !== 0) return;
@@ -157,14 +269,18 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
   // Only MoMo payment pages
   if (!details.url || !details.url.includes('payment.momo.vn')) return;
   
-  // Show success notification
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icon48.png',
-    title: '✅ Mobile View Active',
-    message: 'Trang MoMo đang hiển thị với Mobile User-Agent',
-    priority: 1
-  });
+  // Check if mobile rules are enabled
+  const status = await checkMobileRules();
+  
+  if (status.enabled) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon48.png',
+      title: '✅ Mobile UA Active',
+      message: 'Đang sử dụng Mobile User-Agent',
+      priority: 1
+    });
+  }
 }, {
   url: [{ hostContains: 'payment.momo.vn' }]
 });
