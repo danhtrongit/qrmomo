@@ -2,8 +2,8 @@
 
 // Default configuration
 const DEFAULT_CONFIG = {
-  SERVER_URL: 'http://localhost:4104',
-  REACT_APP_URL: 'http://localhost:4105'
+  SERVER_URL: 'http://localhost:4105',  // Backend WebSocket server
+  REACT_APP_URL: 'http://localhost:4104'  // Frontend React app
 };
 
 // Current configuration (loaded from storage or defaults)
