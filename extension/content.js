@@ -26,12 +26,20 @@ loadConfig().then((config) => {
 // Hàm trích xuất thông tin từ trang MoMo
 function extractPaymentData() {
   try {
+    console.log('🔍 Starting extraction...');
+    console.log('📄 Page URL:', window.location.href);
+    console.log('📄 Page title:', document.title);
+    
     const data = {};
 
     // Trích xuất QR Code
     const qrCodeImg = document.querySelector('.image-qr-code, img[alt="paymentcode"]');
+    console.log('🖼️ QR Code element:', qrCodeImg);
     if (qrCodeImg) {
       data.qrCode = qrCodeImg.src;
+      console.log('✅ QR Code found:', data.qrCode.substring(0, 50));
+    } else {
+      console.log('❌ QR Code NOT found');
     }
 
     // Trích xuất Payment URL (từ current URL hoặc data attribute)
@@ -83,8 +91,12 @@ function extractPaymentData() {
 
     // Trích xuất thông tin nhà cung cấp
     const merchantName = document.querySelector('.merchant-name');
+    console.log('🏪 Merchant element:', merchantName);
     if (merchantName) {
       data.merchant = merchantName.textContent.trim();
+      console.log('✅ Merchant:', data.merchant);
+    } else {
+      console.log('❌ Merchant NOT found');
     }
 
     // Trích xuất logo nhà cung cấp
@@ -95,6 +107,7 @@ function extractPaymentData() {
 
     // Trích xuất mã đơn hàng
     const orderIdElements = document.querySelectorAll('.box-detail');
+    console.log('📦 Box detail elements:', orderIdElements.length);
     orderIdElements.forEach(box => {
       const label = box.querySelector('h4');
       if (label && label.textContent.includes('Mã đơn hàng')) {
@@ -164,8 +177,13 @@ function extractPaymentData() {
       }
     }
     
+    console.log('📊 Final extracted data:', data);
+    console.log('📊 Data keys:', Object.keys(data));
+    console.log('📊 Data empty?', Object.keys(data).length === 0);
+    
     return data;
   } catch (error) {
+    console.error('❌ Extraction error:', error);
     return null;
   }
 }
@@ -219,15 +237,23 @@ function init() {
 // Lắng nghe message từ background script hoặc popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'EXTRACT_DATA') {
+    console.log('📨 Received EXTRACT_DATA message');
+    console.log('📄 Current URL:', window.location.href);
+    console.log('📄 Document ready state:', document.readyState);
+    
     // Generate token hoặc nhận token từ background
     chrome.runtime.sendMessage({ type: 'GENERATE_TOKEN' }, async (response) => {
+      console.log('🎫 Token response:', response);
       if (response && response.token) {
         const token = response.token;
         const reactUrl = response.url;
         
         const data = extractPaymentData();
+        console.log('📊 Extracted data:', data);
+        console.log('📊 Data has keys?', data && Object.keys(data).length > 0);
         
         if (data && Object.keys(data).length > 0) {
+          console.log('✅ Data is valid, sending to server...');
           // Gửi dữ liệu qua server
           const result = await sendDataToServer(token, data);
           
@@ -254,9 +280,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               url: reactUrl
             });
           } else {
+            console.log('❌ Failed to send data to server');
             sendResponse({ success: false, error: 'Failed to send data to server' });
           }
         } else {
+          console.log('❌ No payment data found - data:', data);
+          console.log('❌ Possible reasons:');
+          console.log('   1. Not on MoMo payment page');
+          console.log('   2. Page structure changed');
+          console.log('   3. Page not fully loaded');
+          console.log('   4. Content script not injected properly');
           sendResponse({ success: false, data: null, error: 'No payment data found' });
         }
       } else {
