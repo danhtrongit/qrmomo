@@ -254,6 +254,42 @@
   border-radius: 12px;
 }
 
+/* Open App Button */
+.open-app-button {
+  display: none; /* Hidden by default, shown on mobile */
+  background: white;
+  color: #a50064;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.open-app-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  background: #fff5f9;
+}
+
+.open-app-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.open-app-button svg {
+  flex-shrink: 0;
+}
+
 .qr-instruction {
   text-align: center;
   font-size: 0.95rem;
@@ -328,6 +364,11 @@
 
   .qr-image {
     max-width: 280px;
+  }
+
+  /* Show open app button on tablets and mobile */
+  .open-app-button {
+    display: flex;
   }
 }
 

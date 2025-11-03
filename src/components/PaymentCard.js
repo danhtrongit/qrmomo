@@ -17,6 +17,27 @@ function PaymentCard({ data }) {
     return { minutes, seconds };
   };
 
+  const handleOpenApp = () => {
+    // Extract QR data from the QR code image if available
+    // For now, we'll use the qrCode data URL directly
+    // In production, you might want to extract the actual MoMo deep link
+    const momoDeepLink = data.qrCode; // This should be the actual MoMo deep link
+    
+    // Try to open MoMo app with deep link
+    window.location.href = `momo://app`;
+    
+    // Fallback: If app is not installed, redirect to app store after a delay
+    setTimeout(() => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      
+      if (/android/i.test(userAgent)) {
+        window.location.href = 'https://play.google.com/store/apps/details?id=com.momo.platform';
+      } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        window.location.href = 'https://apps.apple.com/vn/app/momo-chuy%E1%BB%83n-ti%E1%BB%81n-thanh-to%C3%A1n/id918751511';
+      }
+    }, 1500);
+  };
+
   const { minutes, seconds } = formatTime(data.countdown);
 
   return (
@@ -110,6 +131,14 @@ function PaymentCard({ data }) {
             <img src={data.qrCode} alt="QR Code" className="qr-image" />
           </div>
         )}
+
+        {/* Open App Button - Only visible on mobile */}
+        <button className="open-app-button" onClick={handleOpenApp}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          Mở bằng App MoMo
+        </button>
 
         <div className="qr-instruction">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24" style={{display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem'}}>
