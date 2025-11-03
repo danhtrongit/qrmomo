@@ -18,7 +18,33 @@ loadConfig().then((config) => {
       const qrMobileUI = document.getElementById('qr-mobile-ui');
       const isMobileVersion = !!(mobileButton || (qrMobileUI && qrMobileUI.style.display !== 'none'));
       
-      // Silent detection - no logs
+      console.log('📱 Detected page version:', isMobileVersion ? 'Mobile' : 'Desktop');
+      
+      // Detect current device type from browser
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isTablet = /ipad|tablet/i.test(userAgent.toLowerCase());
+      
+      console.log('📱 Browser User-Agent indicates:', isMobileDevice ? 'Mobile' : 'Desktop');
+      console.log('📱 Screen width:', window.innerWidth);
+      
+      // Auto-enable mobile UA if user is on mobile device but seeing desktop version
+      if (isMobileDevice && !isMobileVersion) {
+        console.log('⚠️ Mobile device but desktop version detected!');
+        console.log('🔄 Auto-enabling Mobile UA rules...');
+        
+        // Ask background to enable mobile UA
+        chrome.runtime.sendMessage({ 
+          type: 'ENABLE_MOBILE_UA',
+          auto: true 
+        }, (response) => {
+          if (response && response.success) {
+            console.log('✅ Mobile UA enabled, reloading page...');
+            // Reload to apply mobile UA
+            setTimeout(() => location.reload(), 500);
+          }
+        });
+      }
     }, 1000);
   });
 })();

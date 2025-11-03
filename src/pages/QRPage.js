@@ -30,27 +30,15 @@ function QRPage() {
                       info.current.deviceType === 'ios' || 
                       info.current.deviceType === 'android';
       
-      // Try to notify extension about device type (if extension is installed)
-      if (window.chrome && window.chrome.runtime && window.chrome.runtime.sendMessage) {
-        try {
-          chrome.runtime.sendMessage(
-            {
-              type: 'DEVICE_INFO_UPDATE',
-              data: {
-                deviceType: info.current.deviceType,
-                isMobile: isMobile,
-                viewport: info.current.viewport
-              }
-            },
-            (response) => {
-              // Ignore errors if extension not installed
-              if (chrome.runtime.lastError) return;
-            }
-          );
-        } catch (error) {
-          // Extension not available - ignore
-        }
-      }
+      // Note: chrome.runtime.sendMessage only works when:
+      // 1. React app is opened FROM extension (via extension popup)
+      // 2. React app is running on localhost
+      // On production domain (momo.danhtrong.io.vn), extension cannot receive messages
+      // from regular web pages due to Chrome security restrictions.
+      // 
+      // Solution: Extension's content script (running on payment.momo.vn) will detect
+      // device type directly from the browser's User-Agent and screen size,
+      // then auto-enable mobile UA if needed.
     };
 
     // Update immediately
