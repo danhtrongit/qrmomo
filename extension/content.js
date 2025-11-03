@@ -28,14 +28,26 @@ function extractPaymentData() {
     // Trích xuất Payment URL (từ current URL hoặc data attribute)
     data.paymentUrl = window.location.href;
     
-    // Thử tìm deep link trong page
-    const deepLinkElement = document.querySelector('[data-deep-link], a[href*="momo://"]');
-    if (deepLinkElement) {
-      const deepLink = deepLinkElement.getAttribute('data-deep-link') || deepLinkElement.getAttribute('href');
-      if (deepLink) {
-        data.momoDeepLink = deepLink;
-        console.log('MoMo Deep Link found:', deepLink);
+    // Trích xuất MoMo App Links từ script trong page
+    try {
+      const pageContent = document.documentElement.innerHTML;
+      
+      // Tìm URL applinks.momo.vn (cho cả mobile và desktop)
+      const appLinksMatch = pageContent.match(/https:\\\/\\\/applinks\.momo\.vn\\\/payment\\\/v2\?[^"]+/);
+      if (appLinksMatch) {
+        // Decode escaped characters
+        data.momoAppLink = appLinksMatch[0].replace(/\\\//g, '/');
+        console.log('MoMo App Link found:', data.momoAppLink);
       }
+      
+      // Tìm deep link scheme momo://
+      const deepLinkMatch = pageContent.match(/momo:\\\/\\\/app\?[^"]+/);
+      if (deepLinkMatch) {
+        data.momoDeepLink = deepLinkMatch[0].replace(/\\\//g, '/');
+        console.log('MoMo Deep Link found:', data.momoDeepLink);
+      }
+    } catch (error) {
+      console.error('Error extracting MoMo links:', error);
     }
 
     // Trích xuất thông tin nhà cung cấp

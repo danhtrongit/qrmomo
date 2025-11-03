@@ -20,36 +20,41 @@ function PaymentCard({ data }) {
   const handleOpenApp = () => {
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     
-    // Ưu tiên sử dụng momoDeepLink nếu có
-    if (data.momoDeepLink) {
-      console.log('Opening MoMo with deep link:', data.momoDeepLink);
+    // Ưu tiên 1: Sử dụng momoAppLink (https://applinks.momo.vn/...)
+    // Đây là Universal Link hoạt động tốt trên cả iOS và Android
+    if (data.momoAppLink) {
+      console.log('Opening MoMo with App Link:', data.momoAppLink);
+      window.location.href = data.momoAppLink;
+    }
+    // Ưu tiên 2: Sử dụng momoDeepLink (momo://...)
+    else if (data.momoDeepLink) {
+      console.log('Opening MoMo with Deep Link:', data.momoDeepLink);
       window.location.href = data.momoDeepLink;
     } 
-    // Nếu có paymentUrl, mở trong MoMo app
+    // Ưu tiên 3: Dùng paymentUrl với Intent (Android) hoặc trực tiếp (iOS)
     else if (data.paymentUrl) {
-      console.log('Opening payment URL in MoMo app:', data.paymentUrl);
+      console.log('Opening payment URL:', data.paymentUrl);
       
-      // Trên mobile, thử mở URL trong MoMo app
       if (/android/i.test(userAgent)) {
         // Android: Thử mở với intent
         window.location.href = `intent://${data.paymentUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.momo.platform;end`;
       } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        // iOS: Mở URL trực tiếp, MoMo app sẽ intercept nếu được cài
+        // iOS: Mở URL trực tiếp
         window.location.href = data.paymentUrl;
       } else {
-        // Fallback: Mở URL trong browser
+        // Desktop: Mở trong browser
         window.location.href = data.paymentUrl;
       }
     }
-    // Fallback: Chỉ mở MoMo app
+    // Fallback cuối: Chỉ mở MoMo app
     else {
       console.log('Opening MoMo app without specific payment');
       window.location.href = 'momo://app';
     }
     
-    // Fallback: Nếu app không cài, chuyển đến app store sau 2 giây
+    // Fallback to App Store nếu app không được cài đặt
     setTimeout(() => {
-      if (document.hidden) return; // Đã chuyển sang app rồi, không cần fallback
+      if (document.hidden) return; // App đã mở, không cần redirect
       
       if (/android/i.test(userAgent)) {
         window.location.href = 'https://play.google.com/store/apps/details?id=com.momo.platform';
