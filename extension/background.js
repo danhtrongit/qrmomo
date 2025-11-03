@@ -1,8 +1,8 @@
 // Background Service Worker
 console.log('MoMo Payment Extractor: Background service worker loaded');
 
-// Import configuration
-importScripts('config.js');
+// Import configuration and device emulator
+importScripts('config.js', 'deviceEmulator.js');
 
 // Load config on startup
 let SERVER_URL = CONFIG.SERVER_URL;
@@ -36,9 +36,106 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     return true; // Giữ message channel mở
   }
+  
+  if (request.type === 'OPEN_IN_MOBILE_MODE') {
+    // Open current MoMo page in a new window with mobile dimensions
+    openInMobileMode(request.url)
+      .then(result => {
+        sendResponse(result);
+      })
+      .catch(error => {
+        console.error('Error opening in mobile mode:', error);
+        sendResponse({ error: error.message });
+      });
+    
+    return true;
+  }
+  
+  if (request.type === 'EMULATE_MOBILE') {
+    // Tự động emulate mobile device bằng CDP
+    autoEmulateMoMoPage(sender.tab.id, sender.tab.url)
+      .then(result => {
+        sendResponse(result);
+      })
+      .catch(error => {
+        console.error('Error emulating mobile:', error);
+        sendResponse({ error: error.message });
+      });
+    
+    return true;
+  }
+  
+  if (request.type === 'STOP_EMULATION') {
+    // Stop emulation
+    stopEmulation(sender.tab.id)
+      .then(result => {
+        sendResponse(result);
+      })
+      .catch(error => {
+        console.error('Error stopping emulation:', error);
+        sendResponse({ error: error.message });
+      });
+    
+    return true;
+  }
 
   return true;
 });
+
+// Function to open URL in a mobile-sized window
+async function openInMobileMode(url) {
+  try {
+    console.log('Opening URL in mobile mode:', url);
+    
+    // Get device info from storage if available
+    let deviceInfo;
+    try {
+      const result = await chrome.storage.local.get('momo_device_info');
+      deviceInfo = result.momo_device_info;
+    } catch (error) {
+      console.warn('Could not load device info from storage');
+    }
+    
+    // Default to iPhone 14 Pro dimensions
+    const viewport = deviceInfo?.recommended?.viewport || {
+      width: 393,
+      height: 852
+    };
+    
+    // Create a new window with mobile dimensions
+    const newWindow = await chrome.windows.create({
+      url: url,
+      type: 'popup',
+      width: viewport.width + 16, // Add padding for window chrome
+      height: viewport.height + 120, // Add padding for address bar, etc.
+      left: 100,
+      top: 100
+    });
+    
+    console.log('Mobile window created:', newWindow.id);
+    
+    // Show instruction notification
+    setTimeout(() => {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon48.png',
+        title: '📱 Mobile Mode Window Opened',
+        message: 'Press Ctrl+Shift+M (or Cmd+Shift+M) in the new window, select a mobile device, then reload.',
+        priority: 2
+      });
+    }, 500);
+    
+    return { 
+      success: true, 
+      windowId: newWindow.id,
+      message: 'Mobile window opened. Enable Device Mode (Ctrl+Shift+M) and reload.'
+    };
+    
+  } catch (error) {
+    console.error('Error creating mobile window:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 // Hàm generate token từ server
 async function generateToken() {
@@ -67,6 +164,24 @@ async function generateToken() {
     return null;
   }
 }
+
+// Auto-emulate mobile when opening MoMo payment pages
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only trigger when page starts loading
+  if (changeInfo.status === 'loading' && tab.url && tab.url.includes('payment.momo.vn')) {
+    console.log('📱 MoMo payment page detected, auto-emulating mobile...');
+    
+    // Wait a bit for page to start loading
+    setTimeout(async () => {
+      const result = await autoEmulateMoMoPage(tabId, tab.url);
+      if (result.success) {
+        console.log('✅ Auto-emulation successful');
+      } else {
+        console.warn('⚠️ Auto-emulation failed:', result.error || result.message);
+      }
+    }, 500);
+  }
+});
 
 // Lắng nghe khi extension icon được click
 chrome.action.onClicked.addListener(async (tab) => {

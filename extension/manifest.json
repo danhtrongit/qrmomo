@@ -6,7 +6,10 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "notifications",
+    "debugger",
+    "tabs"
   ],
   "host_permissions": [
     "https://payment.momo.vn/*",

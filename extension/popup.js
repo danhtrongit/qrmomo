@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadConfig();
   
   const extractBtn = document.getElementById('extractBtn');
+  const emulateMobileBtn = document.getElementById('emulateMobileBtn');
   const configBtn = document.getElementById('configBtn');
   const momoStatus = document.getElementById('momoStatus');
   const momoStatusText = document.getElementById('momoStatusText');
@@ -62,6 +63,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('Error checking status:', error);
     }
   }
+
+  // Emulate Mobile Device
+  emulateMobileBtn.addEventListener('click', async () => {
+    try {
+      const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!currentTab.url || !currentTab.url.includes('payment.momo.vn')) {
+        showMessage('⚠️ Vui lòng mở trang thanh toán MoMo!');
+        return;
+      }
+
+      emulateMobileBtn.textContent = '⏳ Đang emulate...';
+      emulateMobileBtn.disabled = true;
+
+      // Gửi message đến background để emulate
+      chrome.runtime.sendMessage({ 
+        type: 'EMULATE_MOBILE',
+        tabId: currentTab.id,
+        url: currentTab.url
+      }, (response) => {
+        emulateMobileBtn.textContent = '📱 Emulate Mobile (Auto)';
+        emulateMobileBtn.disabled = false;
+
+        if (chrome.runtime.lastError) {
+          showMessage('❌ Lỗi: ' + chrome.runtime.lastError.message);
+          return;
+        }
+
+        if (response && response.success) {
+          showMessage('✅ Emulation thành công! Trang đang reload...', 3000);
+        } else {
+          showMessage('⚠️ ' + (response?.error || response?.message || 'Không thể emulate'));
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage('❌ Có lỗi xảy ra: ' + error.message);
+      emulateMobileBtn.textContent = '📱 Emulate Mobile (Auto)';
+      emulateMobileBtn.disabled = false;
+    }
+  });
 
   // Trích xuất thông tin
   extractBtn.addEventListener('click', async () => {
