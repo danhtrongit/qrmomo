@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         reactStatusText.textContent = '⚠️ React App chưa mở';
       }
     } catch (error) {
-      console.error('Error checking status:', error);
+      // Silent error handling
     }
   }
 
@@ -98,7 +98,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     } catch (error) {
-      console.error('Error:', error);
       showMessage('❌ Có lỗi xảy ra: ' + error.message);
       emulateMobileBtn.textContent = '📱 Emulate Mobile (Auto)';
       emulateMobileBtn.disabled = false;
@@ -143,7 +142,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     } catch (error) {
-      console.error('Error:', error);
       showMessage('❌ Có lỗi xảy ra: ' + error.message);
       extractBtn.textContent = '🔍 Trích xuất thông tin';
       extractBtn.disabled = false;

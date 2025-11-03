@@ -70,8 +70,6 @@ const DEVICE_PRESETS = {
  */
 async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
   try {
-    console.log(`📱 Starting device emulation for tab ${tabId}: ${deviceName}`);
-    
     // Get device preset
     const device = DEVICE_PRESETS[deviceName];
     if (!device) {
@@ -79,18 +77,13 @@ async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
     }
     
     // Step 1: Attach debugger to tab
-    console.log('1️⃣ Attaching debugger...');
     await chrome.debugger.attach({ tabId }, '1.3');
-    console.log('✅ Debugger attached');
     
     // Step 2: Enable necessary domains
-    console.log('2️⃣ Enabling CDP domains...');
     await chrome.debugger.sendCommand({ tabId }, 'Emulation.enable');
     await chrome.debugger.sendCommand({ tabId }, 'Network.enable');
-    console.log('✅ CDP domains enabled');
     
     // Step 3: Set device metrics (viewport, scale, mobile)
-    console.log('3️⃣ Setting device metrics...');
     await chrome.debugger.sendCommand({ tabId }, 'Emulation.setDeviceMetricsOverride', {
       width: device.viewport.width,
       height: device.viewport.height,
@@ -101,26 +94,20 @@ async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
         angle: 0
       }
     });
-    console.log('✅ Device metrics set');
     
     // Step 4: Enable touch emulation
-    console.log('4️⃣ Enabling touch emulation...');
     await chrome.debugger.sendCommand({ tabId }, 'Emulation.setTouchEmulationEnabled', {
       enabled: true,
       maxTouchPoints: 5
     });
-    console.log('✅ Touch emulation enabled');
     
     // Step 5: Override User-Agent
-    console.log('5️⃣ Overriding User-Agent...');
     await chrome.debugger.sendCommand({ tabId }, 'Network.setUserAgentOverride', {
       userAgent: device.userAgent,
       platform: device.platform
     });
-    console.log('✅ User-Agent overridden');
     
     // Step 6: Set viewport meta tag via script injection
-    console.log('6️⃣ Injecting viewport meta tag...');
     await chrome.scripting.executeScript({
       target: { tabId },
       func: (width) => {
@@ -134,14 +121,11 @@ async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
       },
       args: [device.viewport.width]
     });
-    console.log('✅ Viewport meta tag injected');
     
     // Step 7: Reload page to apply all changes
-    console.log('7️⃣ Reloading page...');
     await chrome.debugger.sendCommand({ tabId }, 'Page.reload', {
       ignoreCache: true
     });
-    console.log('✅ Page reloaded with mobile emulation');
     
     // Wait for page to load
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -154,13 +138,11 @@ async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
     };
     
   } catch (error) {
-    console.error('❌ Device emulation failed:', error);
-    
     // Try to detach debugger if attached
     try {
       await chrome.debugger.detach({ tabId });
     } catch (detachError) {
-      console.warn('Could not detach debugger:', detachError);
+      // Silent error handling
     }
     
     return {
@@ -176,12 +158,9 @@ async function emulateMobileDevice(tabId, deviceName = 'Samsung Galaxy S23') {
  */
 async function stopEmulation(tabId) {
   try {
-    console.log(`🛑 Stopping emulation for tab ${tabId}`);
     await chrome.debugger.detach({ tabId });
-    console.log('✅ Debugger detached');
     return { success: true };
   } catch (error) {
-    console.warn('Could not detach debugger:', error);
     return { success: false, error: error.message };
   }
 }
@@ -223,7 +202,6 @@ async function autoEmulateMoMoPage(tabId, url) {
   // Check if already emulating
   const isActive = await isEmulationActive(tabId);
   if (isActive) {
-    console.log('⚠️ Emulation already active for this tab');
     return { success: true, message: 'Already emulating' };
   }
   
@@ -246,7 +224,7 @@ async function autoEmulateMoMoPage(tabId, url) {
 
 // Listen for debugger detach (when user closes DevTools or tab)
 chrome.debugger.onDetach.addListener((source, reason) => {
-  console.log(`Debugger detached from tab ${source.tabId}: ${reason}`);
+  // Silent event handling
 });
 
 // Export functions
