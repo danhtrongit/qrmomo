@@ -18,24 +18,45 @@ function PaymentCard({ data }) {
   };
 
   const handleOpenApp = () => {
-    // Extract QR data from the QR code image if available
-    // For now, we'll use the qrCode data URL directly
-    // In production, you might want to extract the actual MoMo deep link
-    const momoDeepLink = data.qrCode; // This should be the actual MoMo deep link
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     
-    // Try to open MoMo app with deep link
-    window.location.href = `momo://app`;
+    // Ưu tiên sử dụng momoDeepLink nếu có
+    if (data.momoDeepLink) {
+      console.log('Opening MoMo with deep link:', data.momoDeepLink);
+      window.location.href = data.momoDeepLink;
+    } 
+    // Nếu có paymentUrl, mở trong MoMo app
+    else if (data.paymentUrl) {
+      console.log('Opening payment URL in MoMo app:', data.paymentUrl);
+      
+      // Trên mobile, thử mở URL trong MoMo app
+      if (/android/i.test(userAgent)) {
+        // Android: Thử mở với intent
+        window.location.href = `intent://${data.paymentUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.momo.platform;end`;
+      } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        // iOS: Mở URL trực tiếp, MoMo app sẽ intercept nếu được cài
+        window.location.href = data.paymentUrl;
+      } else {
+        // Fallback: Mở URL trong browser
+        window.location.href = data.paymentUrl;
+      }
+    }
+    // Fallback: Chỉ mở MoMo app
+    else {
+      console.log('Opening MoMo app without specific payment');
+      window.location.href = 'momo://app';
+    }
     
-    // Fallback: If app is not installed, redirect to app store after a delay
+    // Fallback: Nếu app không cài, chuyển đến app store sau 2 giây
     setTimeout(() => {
-      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (document.hidden) return; // Đã chuyển sang app rồi, không cần fallback
       
       if (/android/i.test(userAgent)) {
         window.location.href = 'https://play.google.com/store/apps/details?id=com.momo.platform';
       } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
         window.location.href = 'https://apps.apple.com/vn/app/momo-chuy%E1%BB%83n-ti%E1%BB%81n-thanh-to%C3%A1n/id918751511';
       }
-    }, 1500);
+    }, 2000);
   };
 
   const { minutes, seconds } = formatTime(data.countdown);

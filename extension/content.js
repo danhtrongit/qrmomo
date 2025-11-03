@@ -25,6 +25,19 @@ function extractPaymentData() {
       console.log('QR Code extracted:', data.qrCode.substring(0, 50) + '...');
     }
 
+    // Trích xuất Payment URL (từ current URL hoặc data attribute)
+    data.paymentUrl = window.location.href;
+    
+    // Thử tìm deep link trong page
+    const deepLinkElement = document.querySelector('[data-deep-link], a[href*="momo://"]');
+    if (deepLinkElement) {
+      const deepLink = deepLinkElement.getAttribute('data-deep-link') || deepLinkElement.getAttribute('href');
+      if (deepLink) {
+        data.momoDeepLink = deepLink;
+        console.log('MoMo Deep Link found:', deepLink);
+      }
+    }
+
     // Trích xuất thông tin nhà cung cấp
     const merchantName = document.querySelector('.merchant-name');
     console.log('Merchant element found:', !!merchantName);
